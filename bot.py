@@ -8,79 +8,95 @@ SOURCE_CHAT_ID = -1003866378383
 DEST_CHAT_ID = -1003886620765
 
 TOPIC_MAP = {
-    998: 4,       # Libros en español
-    11217: 5,     # Libros en inglés
-    8045: 7,      # Series
-    10504: 6,     # Películas
-    9: 8,         # Audiolibros
-    11581: 9,     # Audiolibros en inglés
-    13: 11        # Reglas
+    998: 4,
+    11217: 5,
+    8045: 7,
+    10504: 6,
+    9: 8,
+    11581: 9,
+    13: 11
 }
 
 API = f"https://api.telegram.org/bot{TOKEN}"
 
 
 def copiar_mensaje(message):
-    source_thread = message.get("message_thread_id")
+    chat = message.get("chat", {})
+    thread = message.get("message_thread_id")
 
-    if source_thread not in TOPIC_MAP:
+    print(
+        f"Mensaje recibido: chat={chat.get('id')} "
+        f"thread={thread} "
+        f"message_id={message.get('message_id')}",
+        flush=True
+    )
+
+    if chat.get("id") != SOURCE_CHAT_ID:
         return
 
-    destination_thread = TOPIC_MAP[source_thread]
+    if thread not in TOPIC_MAP:
+        print("Tema ignorado", flush=True)
+        return
 
-    data = {
-        "chat_id": DEST_CHAT_ID,
-        "from_chat_id": SOURCE_CHAT_ID,
-        "message_id": message["message_id"],
-        "message_thread_id": destination_thread
-    }
+    destino = TOPIC_MAP[thread]
 
-    response = requests.post(
+    respuesta = requests.post(
         f"{API}/copyMessage",
-        data=data,
+        data={
+            "chat_id": DEST_CHAT_ID,
+            "from_chat_id": SOURCE_CHAT_ID,
+            "message_id": message["message_id"],
+            "message_thread_id": destino
+        },
         timeout=30
     )
 
-    if not response.ok:
-        print("Error:", response.text)
+    print(
+        f"Copia a tema {destino}: "
+        f"{respuesta.status_code} {respuesta.text}",
+        flush=True
+    )
 
 
 def main():
     offset = None
 
+    print("BOT INICIADO", flush=True)
+
     while True:
         try:
-            params = {
+            parametros = {
                 "timeout": 50,
                 "allowed_updates": ["message"]
             }
 
             if offset is not None:
-                params["offset"] = offset
+                parametros["offset"] = offset
 
-            response = requests.get(
+            respuesta = requests.get(
                 f"{API}/getUpdates",
-                params=params,
+                params=parametros,
                 timeout=60
             )
 
-            data = response.json()
+            datos = respuesta.json()
 
-            for update in data.get("result", []):
+            print(
+                f"getUpdates: ok={datos.get('ok')} "
+                f"mensajes={len(datos.get('result', []))}",
+                flush=True
+            )
+
+            for update in datos.get("result", []):
                 offset = update["update_id"] + 1
 
                 message = update.get("message")
 
-                if not message:
-                    continue
+                if message:
+                    copiar_mensaje(message)
 
-                if message.get("chat", {}).get("id") != SOURCE_CHAT_ID:
-                    continue
-
-                copiar_mensaje(message)
-
-        except Exception as e:
-            print("Error:", e)
+        except Exception as error:
+            print(f"ERROR: {error}", flush=True)
             time.sleep(5)
 
 

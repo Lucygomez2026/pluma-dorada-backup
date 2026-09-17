@@ -49,56 +49,5 @@ def copiar_mensaje(message):
             "message_thread_id": destino
         },
         timeout=30
-    )
-
-    print(
-        f"Copia a tema {destino}: "
-        f"{respuesta.status_code} {respuesta.text}",
-        flush=True
-    )
 
 
-def main():
-    offset = None
-
-    print("BOT INICIADO", flush=True)
-
-    while True:
-        try:
-            parametros = {
-                "timeout": 50,
-                "allowed_updates": ["message"]
-            }
-
-            if offset is not None:
-                parametros["offset"] = offset
-
-            respuesta = requests.get(
-                f"{API}/getUpdates",
-                params=parametros,
-                timeout=60
-            )
-
-            datos = respuesta.json()
-
-           print(
-                f"getUpdates: ok={datos.get('ok')} "
-                f"mensajes={len(datos.get('result', []))} "
-                f"error={datos.get('description')}",
-                flush=True
-            )
-            for update in datos.get("result", []):
-                offset = update["update_id"] + 1
-
-                message = update.get("message")
-
-                if message:
-                    copiar_mensaje(message)
-
-        except Exception as error:
-            print(f"ERROR: {error}", flush=True)
-            time.sleep(5)
-
-
-if __name__ == "__main__":
-    main()

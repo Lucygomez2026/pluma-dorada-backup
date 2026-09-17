@@ -81,12 +81,12 @@ def main():
 
             datos = respuesta.json()
 
-          print(
-    f"getUpdates: ok={datos.get('ok')} "
-    f"mensajes={len(datos.get('result', []))} "
-    f"error={datos.get('description')}",
-    flush=True
-) 
+           print(
+                f"getUpdates: ok={datos.get('ok')} "
+                f"mensajes={len(datos.get('result', []))} "
+                f"error={datos.get('description')}",
+                flush=True
+            )
             for update in datos.get("result", []):
                 offset = update["update_id"] + 1
 
